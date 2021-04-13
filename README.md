@@ -1,3 +1,3 @@
 # helm-charts-examples
-Helm Chart Examples for Demo session\n
+Helm Chart Examples for Demo session. 
 Monitoring Framework: Telegraf + InfluxDB + Chronograf

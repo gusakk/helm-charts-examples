@@ -1,0 +1,189 @@
+# Default values for influxdb.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicasCount: 1
+
+image:
+  repository: influxdb
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+  tag: 1.8.4
+
+nodeSelector: {}
+
+affinity: {}
+
+tolerations: []
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+nameOverride: ""
+fullnameOverride: ""
+
+## Change InfluxDB configuration parameters below:
+## Defaults are indicated
+## ref: https://docs.influxdata.com/influxdb/v1.8/administration/config
+config:
+  reporting_disabled: true
+  storage_directory: /data/influxdb
+  rpc:
+    enabled: true
+    bind_address: 8088
+  meta:
+    retention_autocreate: true
+    logging_enabled: true
+  data:
+    query_log_enabled: true
+    cache_max_memory_size: 1073741824
+    cache_snapshot_memory_size: 26214400
+    cache_snapshot_write_cold_duration: 10m0s
+    compact_full_write_cold_duration: 4h0m0s
+    max_series_per_database: 1000000
+    max_values_per_tag: 100000
+    index_version: tsi1
+    trace_logging_enabled: false
+  coordinator:
+    write_timeout: 10s
+    max_concurrent_queries: 0
+    query_timeout: 0s
+    log_queries_after: 0s
+    max_select_point: 0
+    max_select_series: 0
+    max_select_buckets: 0
+  retention:
+    enabled: true
+    check_interval: 30m0s
+  shard_precreation:
+    enabled: true
+    check_interval: 10m0s
+    advance_period: 30m0s
+  admin:
+    enabled: false
+    bind_address: 8083
+    https_enabled: false
+    https_certificate: /etc/ssl/influxdb.pem
+  monitor:
+    store_enabled: false
+    store_database: _internal
+    store_interval: 10s
+  subscriber:
+    enabled: true
+    http_timeout: 30s
+    insecure_skip_verify: false
+    ca_certs: ""
+    write_concurrency: 40
+    write_buffer_size: 1000
+  http:
+    enabled: true
+    bind_address: 8086
+    auth_enabled: false
+    flux_enabled: true
+    log_enabled: true
+    write_tracing: false
+    pprof_enabled: true
+    https_enabled: false
+    https_certificate: /etc/ssl/influxdb.pem
+    https_private_key: ""
+    max_row_limit: 10000
+    max_connection_limit: 0
+    shared_secret: "beetlejuicebeetlejuicebeetlejuice"
+    realm: InfluxDB
+    unix_socket_enabled: false
+    bind_socket: /var/run/influxdb.sock
+  logging:
+    format: auto
+    level: info
+    supress_logo: false
+
+# Allow executing custom init scripts
+#
+# If the container finds any files with the extensions .sh or .iql inside of the
+# /docker-entrypoint-initdb.d folder, it will execute them. The order they are
+# executed in is determined by the shell. This is usually alphabetical order.
+initScripts:
+  enabled: true
+  scripts:
+    init.iql: |+
+      CREATE DATABASE "telegraf" WITH DURATION 30d REPLICATION 1 NAME "default"
+
+## The InfluxDB image uses several environment variables to automatically
+## configure certain parts of the server.
+## Ref: https://hub.docker.com/_/influxdb/
+env: {}
+# - name: INFLUXDB_DB
+#    value: "demo"
+
+## The name of a secret in the same kubernetes namespace which contain values
+## to be added to the environment.
+## This can be used, for example, to set the INFLUXDB_HTTP_SHARED_SECRET
+## environment variable.
+envFromSecret: {}
+
+## Customize liveness, readiness and startup probes
+## ref: https://docs.influxdata.com/influxdb/v1.8/tools/api/#ping-http-endpoint
+## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+##
+livenessProbe: {}
+  # path: "/ping"
+  # initialDelaySeconds: 30
+  # timeoutSeconds: 5
+  # scheme: HTTP
+
+readinessProbe: {}
+  # path: "/ping"
+  # initialDelaySeconds: 5
+  # timeoutSeconds: 1
+  # scheme: HTTP
+
+startupProbe:
+  enabled: false
+  # path: "/ping"
+  # failureThreshold: 6
+  # periodSeconds: 5
+  # scheme: HTTP
+
+## Persist data to a persistent volume
+##
+persistence:
+  enabled: true
+  ## influxdb data Persistent Volume Storage Class
+  ## If defined, storageClassName: <storageClass>
+  ## If set to "-", storageClassName: "", which disables dynamic provisioning
+  ## If undefined (the default) or set to null, no storageClassName spec is
+  ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+  ##   GKE, AWS & OpenStack)
+  ##
+  # storageClassName: ""
+  accessMode: ReadWriteOnce
+  size: 8Gi
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+service:
+  type: ClusterIP
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi

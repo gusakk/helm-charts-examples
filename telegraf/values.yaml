@@ -1,0 +1,123 @@
+# Default values for telegraf.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+## Exposed telegraf configuration
+## For full list of possible values see `/docs/all-config-values.yaml` and `/docs/all-config-values.toml`
+## ref: https://docs.influxdata.com/telegraf/v1.1/administration/configuration/
+config:
+  agent:
+    interval: "10s"
+    round_interval: true
+    metric_batch_size: 1000
+    metric_buffer_limit: 10000
+    collection_jitter: "0s"
+    flush_interval: "10s"
+    flush_jitter: "0s"
+    precision: ""
+    debug: false
+    quiet: false
+    logfile: ""
+    hostname: "$HOSTNAME"
+    omit_hostname: false
+  inputs:
+    - kube_inventory:
+        interval: "60s"
+        url: "https://kubernetes.default.svc"
+        insecure_skip_verify: true
+        bearer_token: "/var/run/secrets/kubernetes.io/serviceaccount/token"
+        resource_include:
+          - "persistentvolumeclaims"
+          - "services"
+          - "statefulsets"
+          - "deployments"
+        tagexclude:
+          - "phase"
+
+rbac:
+  # Specifies whether RBAC resources should be created
+  create: true
+  # Create only for the release namespace or cluster wide (Role vs ClusterRole)
+  clusterWide: false
+  # Rules for the created rule
+  rules:
+    # When using the prometheus input to scrape all pods you need extra rules set to the ClusterRole to be
+    # able to scan the pods for scraping labels. The following rules have been taken from:
+    # https://github.com/helm/charts/blob/master/stable/prometheus/templates/server-clusterrole.yaml#L8-L46
+    - apiGroups:
+        - ""
+      resources:
+        - pods
+        - persistentvolumes
+        - persistentvolumeclaims
+        - services
+      verbs:
+        - get
+        - list
+        - watch
+    - apiGroups:
+        - "apps"
+      resources:
+        - statefulsets
+        - deployments
+      verbs:
+        - get
+        - list
+        - watch
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+image:
+  repository: "telegraf"
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "1.17-alpine"
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+env:
+  - name: HOSTNAME
+    value: "telegraf-polling-service"
+
+nameOverride: ""
+fullnameOverride: ""
+
+nodeSelector: {}
+
+affinity: {}
+
+tolerations: []
+
+podAnnotations: {}
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+influxdb:
+  url: "http://influxdb:8086"
+  database: "telegraf"
